@@ -86,7 +86,7 @@ button{-webkit-tap-highlight-color:transparent}
  width:160px;max-width:40vw;padding:9px 10px;border:1px solid #9cdec1;border-radius:10px;
  background:#123829ec;color:#ffedbd;font-size:11px;font-weight:800;text-align:center;line-height:1.45}
 #trailStatus[hidden]{display:none}
-#courseLabel{position:absolute;top:133px;left:50%;transform:translateX(-50%);background:#17392bcc;border:1px solid #ffffff45;border-radius:9px;padding:5px 11px;color:#fff0c8;font-weight:800;font-size:11px;white-space:nowrap;text-align:center;max-width:94vw;overflow:hidden;text-overflow:ellipsis}
+#courseLabel{position:absolute;top:137px;left:50%;transform:translateX(-50%);background:#17392bcc;border:1px solid #ffffff45;border-radius:9px;padding:5px 11px;color:#fff0c8;font-weight:800;font-size:11px;white-space:nowrap;text-align:center;max-width:94vw;overflow:hidden;text-overflow:ellipsis}
 @media(pointer:coarse){#courseLabel{top:calc(117px + env(safe-area-inset-top,0px));font-size:10px}}
 </style></head><body>
 <canvas id="weatherCanvas" aria-hidden="true"></canvas><div id="raceBanner"></div><div id="ui"><div id="top"><div class="pill"><small>DISTANCE</small><b id="distance">0</b></div><div class="pill"><small>OVERTAKES</small><b id="overtakes">0</b></div><div class="pill"><small>CARROTS</small><b id="coins">0</b></div><div class="pill"><small>BEST</small><b id="best">0</b></div></div><div id="status">HOP THROUGH THE DERBY!</div><div id="courseLabel">🏇 DERBY CIRCUIT</div><div id="msg"></div><div id="trailStatus" role="status" aria-live="polite" hidden></div><div id="rivalHud" style="display:none;position:absolute;top:135px;left:50%;transform:translateX(-50%);background:#15352cdd;border:1px solid #e4d1a1;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:800;white-space:nowrap">🤖 Rival: 0</div><div id="pad"><span></span><button data-dir="forward">▲</button><span></span><button data-dir="left">◀</button><button data-dir="back">▼</button><button data-dir="right">▶</button></div></div>
@@ -320,14 +320,14 @@ function seasonForRow(i){
 // Racecourse themes: inspired by real-world racing venues, but original stylized scenery.
 // Purely visual; independent of the randomized season, weather, obstacles and physics.
 const trackThemes=[
- {name:'Twin Spires Derby',inspired:'Churchill Downs',dirt:0xb78253,mud:0x855637,accent:0xc84e44,trim:0xf7e9cb,rail:0xf8f1dc,grassTint:0x85b962,style:'spires'},
- {name:'Royal Garden Stakes',inspired:'Royal Ascot',dirt:0xb68b61,mud:0x78543f,accent:0x7c5fae,trim:0xe6ce81,rail:0xf4e9dc,grassTint:0x7eb16b,style:'royal'},
- {name:'Sunset Palms Cup',inspired:'Santa Anita Park',dirt:0xc39465,mud:0x966448,accent:0xe88758,trim:0xffe0b2,rail:0xfff3e4,grassTint:0xa3b76a,style:'palms'},
- {name:'Red Springs Invitational',inspired:'Saratoga Race Course',dirt:0xb98763,mud:0x7f563f,accent:0xb34242,trim:0xffffff,rail:0xf4f1e5,grassTint:0x85ba75,style:'saratoga'},
- {name:'Desert Lights International',inspired:'Meydan Racecourse',dirt:0xd1ad79,mud:0x987354,accent:0x318f9b,trim:0xe9d6ac,rail:0xf7f5e9,grassTint:0xa9b98b,style:'modern'}
+ {name:'Twin Spires Derby',inspired:'Churchill Downs',dirt:0x9f6946,mud:0x71472f,accent:0xd64b42,trim:0xffe3b0,rail:0xfbf0da,grassTint:0x69a64e,style:'spires'},
+ {name:'Royal Garden Stakes',inspired:'Royal Ascot',dirt:0x548d57,mud:0x446d44,accent:0x8056ba,trim:0xf4d773,rail:0xf4e9dc,grassTint:0x59a266,style:'royal'},
+ {name:'Sunset Palms Cup',inspired:'Santa Anita Park',dirt:0xd98555,mud:0x96593d,accent:0xf2aa4d,trim:0xfff0b7,rail:0xfff1d6,grassTint:0x9ab76b,style:'palms'},
+ {name:'Red Springs Invitational',inspired:'Saratoga Race Course',dirt:0xa86b60,mud:0x744840,accent:0xb72e44,trim:0xffffff,rail:0xf5eeee,grassTint:0x76ad69,style:'saratoga'},
+ {name:'Desert Lights International',inspired:'Meydan Racecourse',dirt:0xd7bb8e,mud:0x9c7b58,accent:0x15b2bb,trim:0xe4f4ef,rail:0xf9f7e7,grassTint:0x9eae87,style:'modern'}
 ];
-let trackSections=[];
-function resetTrackThemes(){trackSections=[];ensureTrackSection(0)}
+let trackSections=[],lastTrackNotice=-1;
+function resetTrackThemes(){trackSections=[];lastTrackNotice=-1;ensureTrackSection(0)}
 function ensureTrackSection(row){
  while(!trackSections.length||row>=trackSections[trackSections.length-1].end){
   const prev=trackSections[trackSections.length-1];
@@ -359,17 +359,39 @@ function themeMaterial(hex){
 function themeColor(a,b,amount){return new THREE.Color(a).lerp(new THREE.Color(b),amount).getHex()}
 function themeScenery(g,i,theme,section){
  const side=i%2?1:-1;
- const x=side*23.5; // safely beyond rails and all playable tiles
+ const x=side*17.3; // visible beside the rails, outside all playable tiles
  const accent=themeMaterial(theme.accent),trim=themeMaterial(theme.trim);
  const dark=themeMaterial(0x6c584b),white=themeMaterial(0xf9eee0);
  // Every section has a visually distinct, continuous outer verge.
  for(const edge of [-1,1]){
   const verge=box(g,themeMaterial(themeColor(theme.grassTint,theme.accent,.15)),edge*18.7,-.014,0,2.0,.07,STEP+.06);
   verge.castShadow=false;
-  if(i%4===0){
+  if(i%2===0){
    box(g,accent,edge*15.1,.5,0,1.1,.7,.22);
    box(g,trim,edge*15.1,.95,0,1.15,.14,.25);
   }
+ }
+ // Strongly visible venue-specific course markings, outside the horse movement tiles.
+ for(const edge of [-1,1]){
+   const outer=box(g,accent,edge*12.95,.04,0,1.15,.08,STEP+.05);
+   outer.castShadow=false;
+   const stripe=box(g,trim,edge*13.35,.095,0,.14,.035,STEP+.05);
+   stripe.castShadow=false;
+ }
+ // Signature surface details, kept flat and non-colliding.
+ if(theme.style==='royal'&&i%3===0){
+   for(const xx of [-7.5,0,7.5]){const mark=box(g,themeMaterial(0x82bb83),xx,.025,0,2.3,.016,.13);mark.castShadow=false}
+ }else if(theme.style==='modern'&&i%3===0){
+   for(const xx of [-8,0,8]){const mark=box(g,trim,xx,.03,0,2.5,.02,.12);mark.castShadow=false}
+ }else if(theme.style==='saratoga'&&i%4===0){
+   for(const xx of [-8,0,8]){const mark=box(g,accent,xx,.028,0,1.8,.018,.10);mark.castShadow=false}
+ }
+ // Section entrance stripe: visually announces a venue change.
+ if(i===section.start){
+   for(let x=-11;x<=11;x+=2){
+     const marker=box(g,(Math.floor((x+11)/2)%2===0)?accent:trim,x,.045,0,2,.035,.7);
+     marker.castShadow=false;
+   }
  }
  // A distinctive course landmark at the beginning and occasionally along the course.
  if(i===section.start||i%9===4){
@@ -1063,7 +1085,7 @@ function updateTrailNotice(){
 function makeRow(i){if(rows.has(i))return;const z=-i*STEP;let g=group(scene,0,0,z);const race=i>3&&(i%9!==0)&&(i%9!==1);const type=i<4?'safe':race?(Math.random()<.18?'mud':'race'):'safe';const season=climates[seasonForRow(i)];
 const section=trackSectionAt(i),theme=trackThemes[section.theme];
 const col=type==='safe'?themeColor(season.grass[i%2],theme.grassTint,.23)
-  :type==='mud'?theme.mud:themeColor(season.track[i%2],theme.dirt,.77);
+  :type==='mud'?theme.mud:themeColor(theme.dirt,season.track[i%2],.10);
 box(g,themeMaterial(col),0,-.18,0,34,.36,STEP+.04);
 countryside(g,i);themeScenery(g,i,theme,section);
 if(type!=='safe'){for(let x=-10;x<=10;x+=5){box(g,mats.white,x,.026,0,.065,.025,STEP*.7)}}
@@ -1320,7 +1342,7 @@ function updateRival(dt){
  if(a.row>high+KEEP_AHEAD-3)a.stepClock=Math.max(a.stepClock,.25);
 }
 function start(){resetCourseAdditions();$('crashShow').classList.remove('visible');clearEffects();mudPuffCooldown=0;announcedIntensityBand=-1;rerollVisualWorld();resetTrackThemes();chooseProgram();for(const p of derbyConfetti)scene.remove(p.mesh);derbyConfetti=[];moveQueue.length=0;for(let row of rows.values())disposeRow(row);rows.clear();if(hero)scene.remove(hero.root);hero=horse(scene,coatOptions[chosenCoat].coat,coatOptions[chosenCoat].shirt);decorateHorse(hero);player={x:0,row:0};hero.root.position.set(0,0,0);hero.root.rotation.y=0;heroTargetAngle=0;celebrateUntil=0;celebratedRow=0;high=0;cameraProgress=0;elapsed=0;hopT=0;lastMove=0;coins=0;overtakes=0;stamina=100;aiPassed.clear();run=true;dead=false;ensureRows();startRival();$('menu').style.display='none';showRaceBanner('🏁 '+raceProgram.name+' · Watch for '+raceProgram.featured.name+'!',4);updateHUD();setCamera(true)}
-function updateHUD(){$('courseLabel').textContent='🏇 '+themeForRow(high).name+' · '+(trackSectionAt(high).end-high)+' TO NEXT TRACK';$('distance').textContent=high;$('overtakes').textContent=overtakes;$('coins').textContent=coins;$('best').textContent=Math.max(best,high);$('status').textContent=stamina<20?'LOW STAMINA — COLLECT CARROTS!':'🏇 THE GRAND DERBY CROSSING'}
+function updateHUD(){const section=trackSectionAt(high);if(run&&section.theme!==lastTrackNotice){if(lastTrackNotice!==-1)flash('🏇 NOW RACING: '+trackThemes[section.theme].name.toUpperCase());lastTrackNotice=section.theme}$('courseLabel').textContent='🏇 '+themeForRow(high).name+' · '+(trackSectionAt(high).end-high)+' TO NEXT TRACK';$('distance').textContent=high;$('overtakes').textContent=overtakes;$('coins').textContent=coins;$('best').textContent=Math.max(best,high);$('status').textContent=stamina<20?'LOW STAMINA — COLLECT CARROTS!':'🏇 THE GRAND DERBY CROSSING'}
 function finish(reason){if(!run)return;$('trailStatus').hidden=true;if(showdown&&!reason.includes('YOU WIN'))reason='🤖 RIVAL WINS! '+reason;crashPresentation(reason);run=false;dead=true;$('rivalHud').style.display='none';if(high>best){best=high;try{localStorage.setItem('gallophop-best-v2',best)}catch(e){}}$('title').innerHTML='RACE<br>OVER';$('description').innerHTML=reason+'<br><br>Distance: <b>'+high+'</b> · Overtakes: <b>'+overtakes+'</b> · Carrots: <b>'+coins+'</b><br>Best distance: <b>'+best+'</b>';$('start').textContent='RACE AGAIN →';$('menu').style.display='flex';chooseProgram();renderStable();updateHUD()}
 function move(dir){if(!run)return;
 if(hopT>0){if(moveQueue.length<MAX_QUEUED_MOVES)moveQueue.push(dir);return}
